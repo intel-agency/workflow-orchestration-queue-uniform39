@@ -137,6 +137,27 @@ opencode_args=(
 [[ -n "$print_logs" ]] && opencode_args+=("$print_logs")
 opencode_args+=("$prompt")
 
+echo "=== run_opencode_prompt.sh diagnostics ==="
+echo "Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+echo "PWD: $(pwd)"
+echo "opencode binary: $(which opencode 2>&1 || echo 'NOT FOUND')"
+echo "opencode version: $(opencode --version 2>&1 || echo 'UNKNOWN')"
+echo "Prompt length: ${#prompt} chars"
+echo "Prompt first 200 chars: ${prompt:0:200}"
+echo "Prompt last 200 chars: ${prompt: -200}"
+echo "attach_url: ${attach_url:-<none>}"
+echo "log_level: ${log_level}"
+echo "print_logs: ${print_logs:-<disabled>}"
+echo "opencode args (excluding prompt):"
+for i in "${!opencode_args[@]}"; do
+  if [[ $i -lt $(( ${#opencode_args[@]} - 1 )) ]]; then
+    echo "  [$i] ${opencode_args[$i]}"
+  else
+    echo "  [$i] <prompt content, ${#prompt} chars>"
+  fi
+done
+echo "=== end diagnostics ==="
+
 echo "Starting opencode at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 # Idle watchdog: kill opencode if it produces no output for IDLE_TIMEOUT_SECS.
@@ -146,12 +167,27 @@ echo "Starting opencode at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 IDLE_TIMEOUT_SECS=900   # 15 minutes of no output
 HARD_CEILING_SECS=5400  # 90-minute absolute safety net
 OUTPUT_LOG=$(mktemp /tmp/opencode-output.XXXXXX)
+echo "Output log: $OUTPUT_LOG"
 
 set +e
 
 # Start opencode with output redirected to a log file
+echo "Launching: opencode ${opencode_args[*]:0:$(( ${#opencode_args[@]} - 1 ))} <prompt>"
 stdbuf -oL -eL opencode "${opencode_args[@]}" > "$OUTPUT_LOG" 2>&1 &
 OPENCODE_PID=$!
+echo "opencode PID: $OPENCODE_PID"
+
+# Verify the process actually started
+sleep 1
+if ! kill -0 "$OPENCODE_PID" 2>/dev/null; then
+    echo "::error::opencode process $OPENCODE_PID died immediately after launch"
+    echo "=== Output log contents ==="
+    cat "$OUTPUT_LOG"
+    echo "=== end output log ==="
+    rm -f "$OUTPUT_LOG"
+    exit 1
+fi
+echo "opencode process $OPENCODE_PID confirmed running after 1s"
 
 # Stream the log to stdout in real-time so CI can see it
 tail -f "$OUTPUT_LOG" &
@@ -167,6 +203,14 @@ while kill -0 "$OPENCODE_PID" 2>/dev/null; do
     # Hard ceiling safety net
     now=$(date +%s)
     elapsed=$(( now - START_TIME ))
+
+    # Watchdog status for CI visibility
+    log_size=$(wc -c < "$OUTPUT_LOG" 2>/dev/null || echo 0)
+    log_lines=$(wc -l < "$OUTPUT_LOG" 2>/dev/null || echo 0)
+    last_mod=$(stat -c %Y "$OUTPUT_LOG" 2>/dev/null || echo "$now")
+    idle=$(( now - last_mod ))
+    echo "[watchdog] elapsed=${elapsed}s idle=${idle}s log_size=${log_size}b log_lines=${log_lines} pid=$OPENCODE_PID"
+
     if [[ $elapsed -ge $HARD_CEILING_SECS ]]; then
         echo ""
         echo "::warning::opencode hit ${HARD_CEILING_SECS}s hard ceiling; terminating"
@@ -176,8 +220,6 @@ while kill -0 "$OPENCODE_PID" 2>/dev/null; do
     fi
 
     # Idle detection: check last modification time of the output log
-    last_mod=$(stat -c %Y "$OUTPUT_LOG" 2>/dev/null || echo "$now")
-    idle=$(( now - last_mod ))
     if [[ $idle -ge $IDLE_TIMEOUT_SECS ]]; then
         echo ""
         echo "::warning::opencode idle for $(( idle / 60 ))m (no output); terminating"
@@ -191,6 +233,23 @@ wait "$OPENCODE_PID" 2>/dev/null
 OPENCODE_EXIT=$?
 kill "$TAIL_PID" 2>/dev/null
 wait "$TAIL_PID" 2>/dev/null
+
+echo ""
+echo "=== opencode post-execution diagnostics ==="
+echo "Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+echo "opencode exit code: $OPENCODE_EXIT"
+echo "Idle killed: $IDLE_KILLED"
+echo "Output log file: $OUTPUT_LOG"
+if [[ -f "$OUTPUT_LOG" ]]; then
+    echo "Output log size: $(wc -c < "$OUTPUT_LOG") bytes, $(wc -l < "$OUTPUT_LOG") lines"
+    echo "=== Full output log contents ==="
+    cat "$OUTPUT_LOG"
+    echo ""
+    echo "=== end output log ==="
+else
+    echo "WARNING: Output log file $OUTPUT_LOG does not exist!"
+fi
+
 rm -f "$OUTPUT_LOG"
 
 set -e
