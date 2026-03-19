@@ -29,6 +29,15 @@ jobs:
       pull-requests: write
       issues: write
       packages: read
+    env:
+      # Secrets must be available at job level so they're present during
+      # 'devcontainer up' — the postStartCommand launches the opencode server
+      # daemon, which reads API keys from remoteEnv (${localEnv:...}).
+      # Setting them only on a later step leaves the server without auth.
+      ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
+      KIMI_CODE_ORCHESTRATOR_AGENT_API_KEY: ${{ secrets.KIMI_CODE_ORCHESTRATOR_AGENT_API_KEY }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_ORCHESTRATION_AGENT_TOKEN: ${{ secrets.GH_ORCHESTRATION_AGENT_TOKEN }}
 
     steps:
       - name: Checkout repository
@@ -175,14 +184,6 @@ jobs:
             "
 
       - name: Execute orchestrator agent in devcontainer
-        env:
-          ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
-          KIMI_CODE_ORCHESTRATOR_AGENT_API_KEY: ${{ secrets.KIMI_CODE_ORCHESTRATOR_AGENT_API_KEY }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # GH_ORCHESTRATION_AGENT_TOKEN is an org-scoped PAT stored as an org secret.
-          # Required scopes: repo, workflow, project, read:org.
-          # When absent, the built-in GITHUB_TOKEN is used but only this repo is accessible.
-          GH_ORCHESTRATION_AGENT_TOKEN: ${{ secrets.GH_ORCHESTRATION_AGENT_TOKEN }}
         run: |
           echo "::notice::Executing orchestrator agent with prompt: $ORCHESTRATOR_PROMPT_PATH"
           echo "Prompt file size: $(wc -c < "$ORCHESTRATOR_PROMPT_PATH") bytes"
