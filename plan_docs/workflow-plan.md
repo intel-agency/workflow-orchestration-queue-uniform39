@@ -66,7 +66,7 @@
 | **Assignment** | `init-existing-repository`: Initiate Existing Repository |
 | **Goal** | Create GitHub Project board, import labels, rename workspace/devcontainer files to match repo name, create working branch `dynamic-workflow-project-setup` |
 | **Key Acceptance Criteria** | GitHub Project created (Board view, correct columns); project linked to repo; labels imported from `.github/.labels.json`; `devcontainer.json` `name` field updated; `.code-workspace` file renamed if needed; PR/branch created |
-| **Project-Specific Notes** | The `.devcontainer/devcontainer.json` already has `name: "workflow-orchestration-queue-uniform39-build"` — it should be renamed to `workflow-orchestration-queue-uniform39-devcontainer` per the template. The `.code-workspace` file is already named `workflow-orchestration-queue-uniform39.code-workspace` (correct). Labels file is at `.github/.labels.json`. |
+| **Project-Specific Notes** | The `.devcontainer/devcontainer.json` already has `name: "workflow-orchestration-queue-uniform39"` — it should be renamed to `workflow-orchestration-queue-uniform39-devcontainer` per the template. The `.code-workspace` file is already named `workflow-orchestration-queue-uniform39.code-workspace` (correct). Labels file is at `.github/.labels.json`. |
 | **Prerequisites** | GitHub CLI (`gh`) authenticated with `repo`, `project`, `read:project`, `read:user`, `user:email` scopes. Run `./scripts/test-github-permissions.ps1` to verify. |
 | **Dependencies** | None — first content assignment |
 | **Risks / Challenges** | GitHub Project scope requires `project` + `read:project` OAuth scopes on the token. The `import-labels.ps1` script requires `pwsh` (PowerShell Core). If permissions are missing, use `./scripts/gh-auth.ps1` to re-authenticate. |
@@ -85,7 +85,7 @@
 | **Prerequisites** | `init-existing-repository` completed; branch `dynamic-workflow-project-setup` exists |
 | **Dependencies** | Output from `#initiate-new-repository.init-existing-repository` (project board, labels, branch) |
 | **Risks / Challenges** | **Planning only — no code to be written.** The existing `plan_docs/notifier_service.py` and `plan_docs/orchestrator_sentinel.py` are reference skeletons from human-authored planning, not from a prior assignment — treat them as planning context, not implementation artifacts. |
-| **Events** | Pre: `gather-context`; Post: `validate-assignment-completion`, `report-progress`, `report-progress`; On failure: `recover-from-error` |
+| **Events** | Pre: `gather-context`; Post: `validate-assignment-completion`, `report-progress`; On failure: `recover-from-error` |
 
 ---
 
@@ -95,7 +95,7 @@
 |---|---|
 | **Assignment** | `create-project-structure`: Create Project Structure |
 | **Goal** | Create the actual Python project scaffolding — directory layout, configuration files, Dockerfiles, CI/CD workflows foundation, README.md, and initial test structure |
-| **Key Acceptance Criteria** | Python project structure created following the plan; `pyproject.toml` or `uv`-compatible project config created; Dockerfile(s) created for each service; docker-compose.yml created; configuration/env templates created; README.md created; docs/ directory structure created; `.github/workflows/` structure established; initial `uv` environment validates; project structure reviewed and approved by stakeholder; `.ai-repository-summary.md` created (see assignment 4) |
+| **Key Acceptance Criteria** | Python project structure created following the plan; `pyproject.toml` or `uv`-compatible project config created; Dockerfile(s) created for each service; docker-compose.yml created; configuration/env templates created; README.md created; docs/ directory structure created; `.github/workflows/` structure established; initial `uv` environment validates; project structure reviewed and approved by stakeholder |
 | **Project-Specific Notes** | This is a **Python** project, not .NET. Project structure should follow Python/uv conventions: `src/` layout with `sentinel/` and `notifier/` sub-packages (or a monorepo structure). Key files: `pyproject.toml`, `uv.lock`, `src/sentinel/orchestrator_sentinel.py`, `src/notifier/notifier_service.py`, `src/models.py`, `src/interfaces.py`, `tests/`, `Dockerfile.sentinel`, `Dockerfile.notifier`, `docker-compose.yml`. Reference skeleton files in `plan_docs/` for initial structure hints. The existing `global.json` and `.NET SDK 10` settings in the devcontainer are for the orchestration framework (opencode), not the application — do not remove them. |
 | **Prerequisites** | `create-app-plan` completed; approved application plan issue exists with milestones |
 | **Dependencies** | `#initiate-new-repository.create-app-plan` (application plan, tech-stack.md, architecture.md, milestones) |

@@ -27,8 +27,8 @@ dev = [
 ]
 
 [project.scripts]
-sentinel = "sentinel.orchestrator_sentinel:main"
-notifier = "notifier.notifier_service:main"
+sentinel = "src.sentinel.orchestrator_sentinel:main"
+notifier = "src.notifier.notifier_service:main"
 
 [build-system]
 requires = ["hatchling"]

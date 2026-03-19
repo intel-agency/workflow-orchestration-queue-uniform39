@@ -78,7 +78,7 @@ scope: repository
       <command>Format check: `.venv/bin/black --check src/ tests/`</command>
     </build_and_test>
     <run_services>
-      <command>Start Notifier (dev): `.venv/bin/uvicorn src.notifier.notifier_service:app --reload --port 8080`</command>
+      <command>Start Notifier (dev): `.venv/bin/uvicorn src.notifier.notifier_service:app --reload --port 8000`</command>
       <command>Start Sentinel: `.venv/bin/python3 -m src.sentinel.orchestrator_sentinel`</command>
       <command>Docker Compose (local dev): `docker compose up`</command>
     </run_services>
@@ -99,9 +99,9 @@ scope: repository
       <var name="GITHUB_APP_PRIVATE_KEY">PEM private key for GitHub App JWT signing</var>
       <var name="GITHUB_ORG">GitHub organization name</var>
       <var name="WEBHOOK_SECRET">HMAC secret for validating incoming GitHub webhook payloads</var>
-      <var name="SENTINEL_POLL_INTERVAL_SECONDS">Polling interval in seconds (default: 60)</var>
-      <var name="SENTINEL_MAX_CONCURRENT_TASKS">Maximum concurrent dispatch slots (default: 3)</var>
-      <var name="SENTINEL_BUDGET_LIMIT_USD">Cost guardrail per run in USD (default: 10.00)</var>
+      <var name="POLL_INTERVAL_SECONDS">Polling interval in seconds (default: 60)</var>
+      <var name="TASK_TIMEOUT_MINUTES">Task timeout in minutes (default: 120)</var>
+      <var name="HEARTBEAT_INTERVAL_MINUTES">Heartbeat interval in minutes (default: 5)</var>
     </environment_variables>
     <noqa_suppressions>
       <suppression rule="S104">`host="0.0.0.0"` binding in notifier_service.py — intentional for containerised deployment</suppression>

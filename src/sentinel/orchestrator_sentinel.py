@@ -6,7 +6,7 @@ Worker via the devcontainer shell bridge, and reports status back to GitHub.
 Architecture: see plan_docs/architecture.md — Pillar 3: The Brain.
 
 Usage:
-    uv run python -m sentinel.orchestrator_sentinel
+    uv run python -m src.sentinel.orchestrator_sentinel
     # or via project script:
     uv run sentinel
 """
@@ -52,7 +52,7 @@ class SentinelOrchestrator:
     """
 
     def __init__(self, sentinel_id: str | None = None) -> None:
-        self.sentinel_id: str = sentinel_id or str(uuid.uuid4())[:8]
+        self.sentinel_id: str = sentinel_id or os.getenv("SENTINEL_ID") or str(uuid.uuid4())[:8]
         self._running: bool = False
         logger.info("Sentinel %s initialised", self.sentinel_id)
 

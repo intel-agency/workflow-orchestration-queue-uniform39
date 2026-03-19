@@ -66,7 +66,7 @@ uv run notifier
 
 ```bash
 # Install dev dependencies
-uv sync --dev
+uv sync --all-extras
 
 # Lint
 uv run ruff check src/ tests/

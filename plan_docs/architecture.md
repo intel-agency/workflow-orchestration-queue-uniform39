@@ -133,7 +133,7 @@ agent:queued ──▶ agent:in-progress ──▶ agent:success
 - Pipe output through credential scrubber before posting to GitHub
 
 ### Security
-- Runs in segrated bridge Docker network (no host subnet access)
+- Runs in segregated bridge Docker network (no host subnet access)
 - Cgroup limits: 2 CPUs, 4GB RAM
 - GitHub Installation Token injected as ephemeral env var; destroyed on container exit
 - All output scrubbed via regex before posting to GitHub

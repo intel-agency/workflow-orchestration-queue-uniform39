@@ -18,6 +18,4 @@ COPY src/ ./src/
 RUN useradd --create-home --shell /bin/bash sentinel
 USER sentinel
 
-EXPOSE 8000
-
 CMD ["uv", "run", "sentinel"]

@@ -49,7 +49,7 @@ services:
 networks:
   orchestration:
     driver: bridge
-    # Workers run in isolated network — no access to host subnet (see architecture.md Security)
+    # Sentinel/Notifier need outbound internet access (GitHub API); not isolated
     internal: false
 
 volumes:
