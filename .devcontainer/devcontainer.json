@@ -16,7 +16,7 @@
     "GH_ORCHESTRATION_AGENT_TOKEN": "${localEnv:GH_ORCHESTRATION_AGENT_TOKEN}"
   },
   "forwardPorts": [4096],
-  "postStartCommand": "bash ./scripts/devcontainer-opencode.sh start",
+  "postStartCommand": "bash ./scripts/start-opencode-server.sh",
   "customizations": {
     "vscode": {
       "extensions": [
