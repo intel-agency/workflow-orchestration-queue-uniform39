@@ -63,9 +63,9 @@ jobs:
           # Assemble prompt in the workspace so it's available inside the devcontainer
           PROMPT_TEMPLATE=".github/workflows/prompts/orchestrator-agent-prompt.md"
 
-          # Replace __EVENT_DATA__ placeholder with structured context + full event JSON
+          # Replace {{__EVENT_DATA__}} injection point with structured context + full event JSON
           {
-            sed '/__EVENT_DATA__/,$ d' "$PROMPT_TEMPLATE"
+            sed '/{{__EVENT_DATA__}}/,$ d' "$PROMPT_TEMPLATE"
             echo "$EVENT_BLOCK"
             echo ""
             echo '```json'
