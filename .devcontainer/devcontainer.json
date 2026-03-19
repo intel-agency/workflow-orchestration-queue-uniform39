@@ -12,10 +12,11 @@
     "OPENCODE_SERVER_HOSTNAME": "${localEnv:OPENCODE_SERVER_HOSTNAME}",
     "OPENCODE_SERVER_PORT": "${localEnv:OPENCODE_SERVER_PORT}",
     "OPENCODE_SERVER_USERNAME": "${localEnv:OPENCODE_SERVER_USERNAME}",
-    "OPENCODE_SERVER_PASSWORD": "${localEnv:OPENCODE_SERVER_PASSWORD}"
+    "OPENCODE_SERVER_PASSWORD": "${localEnv:OPENCODE_SERVER_PASSWORD}",
+    "GH_ORCHESTRATION_AGENT_TOKEN": "${localEnv:GH_ORCHESTRATION_AGENT_TOKEN}"
   },
   "forwardPorts": [4096],
-  "postStartCommand": "bash ./scripts/start-opencode-server.sh",
+  "postStartCommand": "bash ./scripts/devcontainer-opencode.sh start",
   "customizations": {
     "vscode": {
       "extensions": [
