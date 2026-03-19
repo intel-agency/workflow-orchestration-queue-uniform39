@@ -21,8 +21,9 @@ attach_url=""
 auth_user="${OPENCODE_AUTH_USER:-}"   # prefer env vars — flags override if provided
 auth_pass="${OPENCODE_AUTH_PASS:-}"
 work_dir=""
-log_level="DEBUG"
+log_level="INFO"
 print_logs=""
+format_flag=""
 
 while getopts ":f:p:a:u:P:d:l:L" opt; do
     case $opt in
@@ -125,39 +126,47 @@ elif [[ ( -n "$auth_user" || -n "$auth_pass" ) && -z "$attach_url" ]]; then
     exit 1
 fi
 
+# When DEBUG_ORCHESTRATOR is set, crank up diagnostics
+if [[ "${DEBUG_ORCHESTRATOR:-}" == "true" ]]; then
+    log_level="DEBUG"
+    print_logs="--print-logs"
+    format_flag="--format json"
+    echo "[debug] DEBUG_ORCHESTRATOR=true — enabling verbose output"
+fi
+
 # Build opencode args — optional flags only included when set
 opencode_args=(
     run
     --model zai-coding-plan/glm-5
     --agent orchestrator
     --log-level "$log_level"
-    --print-logs
-    --format json
 )
+[[ -n "$print_logs"  ]] && opencode_args+=(--print-logs)
+[[ -n "$format_flag" ]] && opencode_args+=(${format_flag})
 [[ -n "$attach_url" ]] && opencode_args+=(--attach "$attach_url")
 [[ -n "$work_dir"   ]] && opencode_args+=(--dir    "$work_dir")
 opencode_args+=("$prompt")
 
-echo "=== run_opencode_prompt.sh diagnostics ==="
-echo "Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-echo "PWD: $(pwd)"
-echo "opencode binary: $(which opencode 2>&1 || echo 'NOT FOUND')"
-echo "opencode version: $(opencode --version 2>&1 || echo 'UNKNOWN')"
-echo "Prompt length: ${#prompt} chars"
-echo "Prompt first 200 chars: ${prompt:0:200}"
-echo "Prompt last 200 chars: ${prompt: -200}"
-echo "attach_url: ${attach_url:-<none>}"
-echo "log_level: ${log_level}"
-echo "print_logs: ${print_logs:-<disabled>}"
-echo "opencode args (excluding prompt):"
-for i in "${!opencode_args[@]}"; do
-  if [[ $i -lt $(( ${#opencode_args[@]} - 1 )) ]]; then
-    echo "  [$i] ${opencode_args[$i]}"
-  else
-    echo "  [$i] <prompt content, ${#prompt} chars>"
-  fi
-done
-echo "=== end diagnostics ==="
+# Always show concise info; verbose diagnostics only with DEBUG_ORCHESTRATOR
+echo "Prompt: ${#prompt} chars | attach: ${attach_url:-local} | log-level: ${log_level}"
+if [[ "${DEBUG_ORCHESTRATOR:-}" == "true" ]]; then
+    echo "=== run_opencode_prompt.sh diagnostics ==="
+    echo "Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    echo "PWD: $(pwd)"
+    echo "opencode binary: $(which opencode 2>&1 || echo 'NOT FOUND')"
+    echo "opencode version: $(opencode --version 2>&1 || echo 'UNKNOWN')"
+    echo "Prompt first 200 chars: ${prompt:0:200}"
+    echo "Prompt last 200 chars: ${prompt: -200}"
+    echo "opencode args (excluding prompt):"
+    for i in "${!opencode_args[@]}"; do
+      if [[ $i -lt $(( ${#opencode_args[@]} - 1 )) ]]; then
+        echo "  [$i] ${opencode_args[$i]}"
+      else
+        echo "  [$i] <prompt content, ${#prompt} chars>"
+      fi
+    done
+    echo "=== end diagnostics ==="
+fi
 
 echo "Starting opencode at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
@@ -205,12 +214,14 @@ while kill -0 "$OPENCODE_PID" 2>/dev/null; do
     now=$(date +%s)
     elapsed=$(( now - START_TIME ))
 
-    # Watchdog status for CI visibility
+    # Watchdog status — concise by default, verbose when debugging
     log_size=$(wc -c < "$OUTPUT_LOG" 2>/dev/null || echo 0)
     log_lines=$(wc -l < "$OUTPUT_LOG" 2>/dev/null || echo 0)
     last_mod=$(stat -c %Y "$OUTPUT_LOG" 2>/dev/null || echo "$now")
     idle=$(( now - last_mod ))
-    echo "[watchdog] elapsed=${elapsed}s idle=${idle}s log_size=${log_size}b log_lines=${log_lines} pid=$OPENCODE_PID"
+    if [[ "${DEBUG_ORCHESTRATOR:-}" == "true" ]]; then
+        echo "[watchdog] elapsed=${elapsed}s idle=${idle}s log_size=${log_size}b log_lines=${log_lines} pid=$OPENCODE_PID"
+    fi
 
     if [[ $elapsed -ge $HARD_CEILING_SECS ]]; then
         echo ""
@@ -236,19 +247,21 @@ kill "$TAIL_PID" 2>/dev/null
 wait "$TAIL_PID" 2>/dev/null
 
 echo ""
-echo "=== opencode post-execution diagnostics ==="
-echo "Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 echo "opencode exit code: $OPENCODE_EXIT"
-echo "Idle killed: $IDLE_KILLED"
-echo "Output log file: $OUTPUT_LOG"
-if [[ -f "$OUTPUT_LOG" ]]; then
-    echo "Output log size: $(wc -c < "$OUTPUT_LOG") bytes, $(wc -l < "$OUTPUT_LOG") lines"
-    echo "=== Full output log contents ==="
-    cat "$OUTPUT_LOG"
-    echo ""
-    echo "=== end output log ==="
-else
-    echo "WARNING: Output log file $OUTPUT_LOG does not exist!"
+if [[ "${DEBUG_ORCHESTRATOR:-}" == "true" ]]; then
+    echo "=== opencode post-execution diagnostics ==="
+    echo "Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    echo "Idle killed: $IDLE_KILLED"
+    echo "Output log file: $OUTPUT_LOG"
+    if [[ -f "$OUTPUT_LOG" ]]; then
+        echo "Output log size: $(wc -c < "$OUTPUT_LOG") bytes, $(wc -l < "$OUTPUT_LOG") lines"
+        echo "=== Full output log contents ==="
+        cat "$OUTPUT_LOG"
+        echo ""
+        echo "=== end output log ==="
+    else
+        echo "WARNING: Output log file $OUTPUT_LOG does not exist!"
+    fi
 fi
 
 rm -f "$OUTPUT_LOG"

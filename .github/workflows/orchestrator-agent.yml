@@ -151,6 +151,7 @@ jobs:
         run: bash ./scripts/devcontainer-opencode.sh start
 
       - name: Dump assembled prompt
+        if: vars.DEBUG_ORCHESTRATOR == 'true'
         run: |
           echo "::group::Full assembled prompt ($ORCHESTRATOR_PROMPT_PATH)"
           echo "Path: $ORCHESTRATOR_PROMPT_PATH"
@@ -162,6 +163,7 @@ jobs:
           echo "::endgroup::"
 
       - name: Verify prompt is accessible inside devcontainer
+        if: vars.DEBUG_ORCHESTRATOR == 'true'
         run: |
           echo "Checking if assembled prompt is visible inside devcontainer..."
           devcontainer exec \
@@ -184,6 +186,8 @@ jobs:
             "
 
       - name: Execute orchestrator agent in devcontainer
+        env:
+          DEBUG_ORCHESTRATOR: ${{ vars.DEBUG_ORCHESTRATOR }}
         run: |
           echo "::notice::Executing orchestrator agent with prompt: $ORCHESTRATOR_PROMPT_PATH"
           echo "Prompt file size: $(wc -c < "$ORCHESTRATOR_PROMPT_PATH") bytes"
@@ -196,7 +200,7 @@ jobs:
           exit $EXIT_CODE
 
       - name: Dump server-side logs from devcontainer
-        if: always()
+        if: always() && vars.DEBUG_ORCHESTRATOR == 'true'
         run: |
           echo "::group::opencode serve log (server-side)"
           devcontainer exec \
