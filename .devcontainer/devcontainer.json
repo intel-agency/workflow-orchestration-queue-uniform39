@@ -1,5 +1,5 @@
 {
-  "name": "workflow-orchestration-queue-uniform39",
+  "name": "workflow-orchestration-queue-uniform39-devcontainer",
   "image": "ghcr.io/intel-agency/workflow-orchestration-queue-uniform39/devcontainer:main-latest",
   "containerEnv": {
     "DOTNET_ROOT": "/usr/share/dotnet"
@@ -12,7 +12,8 @@
     "OPENCODE_SERVER_HOSTNAME": "${localEnv:OPENCODE_SERVER_HOSTNAME}",
     "OPENCODE_SERVER_PORT": "${localEnv:OPENCODE_SERVER_PORT}",
     "OPENCODE_SERVER_USERNAME": "${localEnv:OPENCODE_SERVER_USERNAME}",
-    "OPENCODE_SERVER_PASSWORD": "${localEnv:OPENCODE_SERVER_PASSWORD}"
+    "OPENCODE_SERVER_PASSWORD": "${localEnv:OPENCODE_SERVER_PASSWORD}",
+    "GH_ORCHESTRATION_AGENT_TOKEN": "${localEnv:GH_ORCHESTRATION_AGENT_TOKEN}"
   },
   "forwardPorts": [4096],
   "postStartCommand": "bash ./scripts/start-opencode-server.sh",
