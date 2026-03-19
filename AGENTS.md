@@ -61,6 +61,54 @@ scope: repository
     <item>MCP servers: `@modelcontextprotocol/server-sequential-thinking`, `@modelcontextprotocol/server-memory`</item>
   </tech_stack>
 
+  <application_layer>
+    <summary>
+      The Python application layer implements the OS-APOW (Orchestrator Sentinel — Agentic Parallel
+      Orchestration Workflow) system. Two services collaborate: the Notifier (FastAPI webhook receiver)
+      and the Sentinel (persistent background polling orchestrator that dispatches work to opencode).
+    </summary>
+    <setup>
+      <command>Install dependencies: `uv sync --all-extras` (creates `.venv/` automatically)</command>
+      <command>Alternative (editable install): `pip install -e ".[dev]"`</command>
+    </setup>
+    <build_and_test>
+      <command>Run tests: `.venv/bin/python3 -m pytest tests/ -v`</command>
+      <command>Run tests (no coverage): `.venv/bin/python3 -m pytest tests/ --no-cov`</command>
+      <command>Lint: `.venv/bin/ruff check src/ tests/`</command>
+      <command>Format check: `.venv/bin/black --check src/ tests/`</command>
+    </build_and_test>
+    <run_services>
+      <command>Start Notifier (dev): `.venv/bin/uvicorn src.notifier.notifier_service:app --reload --port 8080`</command>
+      <command>Start Sentinel: `.venv/bin/python3 -m src.sentinel.orchestrator_sentinel`</command>
+      <command>Docker Compose (local dev): `docker compose up`</command>
+    </run_services>
+    <project_structure>
+      <entry><path>src/models.py</path><description>Core Pydantic v2 models: WorkItem, TaskType (StrEnum), WorkItemStatus (StrEnum)</description></entry>
+      <entry><path>src/interfaces.py</path><description>Abstract ITaskQueue base class — provider-agnostic ADR-09 queue contract</description></entry>
+      <entry><path>src/sentinel/orchestrator_sentinel.py</path><description>SentinelOrchestrator — persistent poller; dispatches WorkItems via opencode CLI subprocess (ADR-07)</description></entry>
+      <entry><path>src/notifier/notifier_service.py</path><description>FastAPI webhook receiver; validates HMAC SHA-256 signatures; triages GitHub events to queue</description></entry>
+      <entry><path>tests/</path><description>pytest suite: test_models.py, test_notifier.py, test_sentinel.py (12 tests, all passing)</description></entry>
+      <entry><path>pyproject.toml</path><description>uv-managed project; ruff ruleset S,I,E,W,F; pytest asyncio_mode=auto</description></entry>
+      <entry><path>docker-compose.yml</path><description>Multi-container local development (sentinel + notifier on shared network)</description></entry>
+      <entry><path>.env.example</path><description>Required environment variable template with all secrets documented</description></entry>
+      <entry><path>Dockerfile.sentinel</path><description>Sentinel container image (python:3.12-slim + uv)</description></entry>
+      <entry><path>Dockerfile.notifier</path><description>Notifier container image (python:3.12-slim + uv)</description></entry>
+    </project_structure>
+    <environment_variables>
+      <var name="GITHUB_APP_ID">GitHub App ID for API authentication</var>
+      <var name="GITHUB_APP_PRIVATE_KEY">PEM private key for GitHub App JWT signing</var>
+      <var name="GITHUB_ORG">GitHub organization name</var>
+      <var name="WEBHOOK_SECRET">HMAC secret for validating incoming GitHub webhook payloads</var>
+      <var name="SENTINEL_POLL_INTERVAL_SECONDS">Polling interval in seconds (default: 60)</var>
+      <var name="SENTINEL_MAX_CONCURRENT_TASKS">Maximum concurrent dispatch slots (default: 3)</var>
+      <var name="SENTINEL_BUDGET_LIMIT_USD">Cost guardrail per run in USD (default: 10.00)</var>
+    </environment_variables>
+    <noqa_suppressions>
+      <suppression rule="S104">`host="0.0.0.0"` binding in notifier_service.py — intentional for containerised deployment</suppression>
+      <suppression rule="S603">`subprocess.run()` in orchestrator_sentinel.py — intentional opencode CLI dispatch (ADR-07)</suppression>
+    </noqa_suppressions>
+  </application_layer>
+
   <repository_map>
     <!-- Workflows -->
     <entry><path>.github/workflows/orchestrator-agent.yml</path><description>Primary workflow — assembles prompt, logs into GHCR, runs opencode in devcontainer</description></entry>
@@ -127,13 +175,26 @@ scope: repository
   </environment_setup>
 
   <testing>
-    <guidance>Tests are shell scripts in `test/`. Run directly with `bash`.</guidance>
+    <guidance>Shell tests are scripts in `test/`. Run directly with `bash`.</guidance>
     <commands>
-      <command>All tests: `bash test/test-devcontainer-build.sh && bash test/test-devcontainer-tools.sh && bash test/test-prompt-assembly.sh`</command>
+      <command>All shell tests: `bash test/test-devcontainer-build.sh && bash test/test-devcontainer-tools.sh && bash test/test-prompt-assembly.sh`</command>
       <command>Prompt changes: `bash test/test-prompt-assembly.sh`</command>
       <command>Dockerfile changes: `bash test/test-devcontainer-tools.sh`</command>
     </commands>
     <guidance>Add new fixture payloads to `test/fixtures/` when testing new event types.</guidance>
+    <python_tests>
+      <guidance>Python application tests use pytest and live in `tests/`. Run with the uv-managed venv.</guidance>
+      <commands>
+        <command>All Python tests: `.venv/bin/python3 -m pytest tests/ -v`</command>
+        <command>With coverage report: `.venv/bin/python3 -m pytest tests/ --cov=src --cov-report=term-missing`</command>
+        <command>Lint: `.venv/bin/ruff check src/ tests/`</command>
+      </commands>
+      <test_files>
+        <file>tests/test_models.py — WorkItem, TaskType, WorkItemStatus Pydantic model tests (4 tests)</file>
+        <file>tests/test_notifier.py — webhook HMAC validation: TC-01 invalid sig→401, missing sig→401, TC-02 valid sig→202, health endpoint (4 tests)</file>
+        <file>tests/test_sentinel.py — SentinelOrchestrator lifecycle: init, explicit ID, stop flag, poll cycle (4 tests)</file>
+      </test_files>
+    </python_tests>
   </testing>
 
   <coding_conventions>
@@ -175,6 +236,8 @@ scope: repository
         | Shell tests            | bash test/test-prompt-assembly.sh                     | Prompt/workflow changes  |
         | Devcontainer tests     | bash test/test-devcontainer-tools.sh                  | Dockerfile changes       |
         | Workflow structure     | grep -c "^name:" .github/workflows/*.yml (expect 1)   | Workflow changes         |
+        | Python lint            | .venv/bin/ruff check src/ tests/                      | Any Python changes       |
+        | Python tests           | .venv/bin/python3 -m pytest tests/ -v                 | Any Python changes       |
       -->
       <rule>When adding a CI workflow, add its equivalent local command to this table.</rule>
     </verification_commands>
