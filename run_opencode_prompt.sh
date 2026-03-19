@@ -21,7 +21,7 @@ attach_url=""
 auth_user="${OPENCODE_AUTH_USER:-}"   # prefer env vars — flags override if provided
 auth_pass="${OPENCODE_AUTH_PASS:-}"
 work_dir=""
-log_level="INFO"
+log_level="DEBUG"
 print_logs=""
 
 while getopts ":f:p:a:u:P:d:l:L" opt; do
@@ -131,10 +131,11 @@ opencode_args=(
     --model zai-coding-plan/glm-5
     --agent orchestrator
     --log-level "$log_level"
+    --print-logs
+    --format json
 )
 [[ -n "$attach_url" ]] && opencode_args+=(--attach "$attach_url")
 [[ -n "$work_dir"   ]] && opencode_args+=(--dir    "$work_dir")
-[[ -n "$print_logs" ]] && opencode_args+=("$print_logs")
 opencode_args+=("$prompt")
 
 echo "=== run_opencode_prompt.sh diagnostics ==="

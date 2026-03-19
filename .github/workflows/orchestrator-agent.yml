@@ -193,3 +193,33 @@ jobs:
           echo "---"
           echo "::notice::devcontainer-opencode.sh exited with code: $EXIT_CODE"
           exit $EXIT_CODE
+
+      - name: Dump server-side logs from devcontainer
+        if: always()
+        run: |
+          echo "::group::opencode serve log (server-side)"
+          devcontainer exec \
+            --workspace-folder . \
+            --config .devcontainer/devcontainer.json \
+            -- bash -c "
+              echo '=== /tmp/opencode-serve.log ===';
+              if [ -f /tmp/opencode-serve.log ]; then
+                echo 'Size:' \$(wc -c < /tmp/opencode-serve.log) 'bytes,' \$(wc -l < /tmp/opencode-serve.log) 'lines';
+                cat /tmp/opencode-serve.log;
+              else
+                echo 'NOT FOUND';
+              fi;
+              echo '';
+              echo '=== opencode data directory ===';
+              ls -laR ~/.local/share/opencode/ 2>/dev/null | head -50 || echo 'no opencode data dir';
+              echo '';
+              echo '=== latest session logs ===';
+              find ~/.local/share/opencode/ -name '*.log' -newer /tmp/opencode-serve.log 2>/dev/null | while read f; do
+                echo \"--- \$f ---\";
+                tail -100 \"\$f\";
+              done;
+              echo '';
+              echo '=== opencode session list ===';
+              opencode session list --format json 2>&1 | head -50 || echo 'session list failed';
+            "
+          echo "::endgroup::"
