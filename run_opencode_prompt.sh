@@ -22,7 +22,7 @@ auth_user="${OPENCODE_AUTH_USER:-}"   # prefer env vars — flags override if pr
 auth_pass="${OPENCODE_AUTH_PASS:-}"
 work_dir=""
 log_level="INFO"
-print_logs=""
+print_logs="--print-logs"
 format_flag=""
 
 while getopts ":f:p:a:u:P:d:l:L" opt; do
@@ -129,7 +129,6 @@ fi
 # When DEBUG_ORCHESTRATOR is set, crank up diagnostics
 if [[ "${DEBUG_ORCHESTRATOR:-}" == "true" ]]; then
     log_level="DEBUG"
-    print_logs="--print-logs"
     format_flag="--format json"
     echo "[debug] DEBUG_ORCHESTRATOR=true — enabling verbose output"
 fi
